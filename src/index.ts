@@ -50,16 +50,23 @@ const io = new Server(server);
 io.on("connect", (socket: Socket) => {
   console.log("connecion");
 });
-io.on("updatedPoll", (socket: Socket, data: PollsDoc) => {
+io.on("updatePoll", (socket: Socket, data: PollsDoc) => {
   io.sockets.emit(data.toObject());
 });
-io.on("createdPoll", (socket: Socket, data: PollsDoc) => {
+io.on("createPoll", (socket: Socket, data: PollsDoc) => {
   io.sockets.emit(data.toObject());
 });
+io.on("deletePoll", (socket: Socket, data: PollsDoc) => {
+  io.sockets.emit(data.toObject());
+});
+
 io.on("createEvent", (socket: Socket, data: EventsDoc) => {
   io.sockets.emit(data.toObject());
 });
 io.on("updateEvent", (socket: Socket, data: EventsDoc) => {
+  io.sockets.emit(data.toObject());
+});
+io.on("deleteEvent", (socket: Socket, data: EventsDoc) => {
   io.sockets.emit(data.toObject());
 });
 app.use((req: Request, res: Response, next: NextFunction) => {

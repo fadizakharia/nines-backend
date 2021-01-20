@@ -101,6 +101,7 @@ const deletePoll = async (req: Request, res: Response, next: NextFunction) => {
     }
     await PollItem.deleteMany(poll.pollItems);
     await Poll.deleteOne(poll);
+    req.io.emit("deletePoll", poll);
     res.status(200).send("poll successfully removed!");
   } catch (err) {
     invalid.message =

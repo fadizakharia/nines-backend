@@ -134,6 +134,7 @@ const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
       invalid.message = "you are not allowed to delete this event!";
       return next(invalid);
     }
+    req.io.emit("deleteEvent", event);
     await Event.deleteOne(event);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
