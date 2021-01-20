@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import { json } from "body-parser";
-
+import { createServer } from "http";
+import { Server, Socket } from "socket.io";
 import express, { NextFunction, Request, Response } from "express";
 import session, { SessionOptions } from "express-session";
 import { ResponseError } from "./util/Error/Error";
@@ -9,14 +10,13 @@ import Cors from "cors";
 import { authRouter } from "./routes/auth";
 import MongoStore from "connect-mongo";
 import { pollRouter } from "./routes/poll";
+import { PollsDoc } from "./models/poll";
+import { EventsDoc } from "./models/Event";
 dotenv.config();
 const app = express();
-declare module "express-session" {
-  interface Session {
-    user: { [key: string]: any };
-  }
-}
+
 app.set("trust proxy", 1);
+
 mongoose.connect(process.env.DB_CONNECTION_URI!, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -36,7 +36,7 @@ app.use(
       httpOnly: true,
       signed: false,
       maxAge: 60 * 60 * 1000,
-      secure: false,
+      secure: process.env.NODE_ENV === "prod",
       path: "/",
     },
   } as SessionOptions)
@@ -45,6 +45,27 @@ app.use(
 app.use(json());
 
 app.use(Cors({ credentials: true }));
+const server = createServer(app);
+const io = new Server(server);
+io.on("connect", (socket: Socket) => {
+  console.log("connecion");
+});
+io.on("updatedPoll", (socket: Socket, data: PollsDoc) => {
+  io.sockets.emit(data.toObject());
+});
+io.on("createdPoll", (socket: Socket, data: PollsDoc) => {
+  io.sockets.emit(data.toObject());
+});
+io.on("createEvent", (socket: Socket, data: EventsDoc) => {
+  io.sockets.emit(data.toObject());
+});
+io.on("updateEvent", (socket: Socket, data: EventsDoc) => {
+  io.sockets.emit(data.toObject());
+});
+app.use((req: Request, res: Response, next: NextFunction) => {
+  req.io = io;
+  next();
+});
 app.use(authRouter);
 app.use(pollRouter);
 app.use((req: Request, res: Response, next: NextFunction) => {

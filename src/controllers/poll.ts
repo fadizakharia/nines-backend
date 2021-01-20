@@ -9,6 +9,7 @@ const getAllPolls = async (req: Request, res: Response, next: NextFunction) => {
   const invalid: ResponseError = new Error();
   try {
     const polls = await Poll.find({ expirationTime: { $lte: expiredOnBefore } })
+      .populate(["poll_item", "user"])
       .limit(10)
       .sort("-expirationTime");
     if (polls.length === 0) {
@@ -57,6 +58,7 @@ const createPoll = async (req: Request, res: Response, next: NextFunction) => {
   poll.pollItems = savedItemIds;
   const savedPoll = await poll.save();
   const invalid: ResponseError = new Error();
+  req.io.emit("createPoll", savedPoll);
   res.send({ poll: savedPoll });
 };
 const updatePoll = async (req: Request, res: Response, next: NextFunction) => {
@@ -72,6 +74,7 @@ const updatePoll = async (req: Request, res: Response, next: NextFunction) => {
     const updatedPoll = await foundPoll.update({
       ...req.body,
     });
+    req.io.emit("updatePoll", updatedPoll);
     res.status(204).send(updatedPoll);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
@@ -119,6 +122,7 @@ const getUserPolls = async (
       creatorId: id,
       expirationTime: { $lte: expiredOnBefore },
     })
+      .populate(["poll_item", "user"])
       .limit(10)
       .sort("-expirationTime");
     if (polls.length === 0) {
