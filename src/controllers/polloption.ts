@@ -1,3 +1,4 @@
+import { Iot } from "aws-sdk";
 import { NextFunction, Request, Response } from "express";
 import Poll from "../models/poll";
 import { PollItem } from "../models/pollItem";
@@ -21,6 +22,7 @@ const addPollOption = async (
     const savedPollItem = await pollItem.save();
     poll.pollItems.push(savedPollItem.id);
     await poll.save();
+    req.io.emit("updatePoll", poll);
     res.status(201).send(poll);
   } catch (err) {
     invalid.status = 500;
@@ -39,13 +41,23 @@ const deletePollOption = async (
   try {
     const poll = await Poll.findById(pollId);
     const pollOption = await PollItem.findById(pollOptionId);
-
+    if (!pollOption || !poll) {
+      invalid.message =
+        "poll option has already been removed or poll does not exist.";
+      invalid.status = 404;
+      return next(invalid);
+    }
     if (pollOption.creatorId !== id && poll.creatorId !== id) {
       invalid.message = "you are forbidden from deleting this poll option.";
       invalid.status = 403;
       return next(invalid);
     }
+    const pollItemIndex = poll.pollItems.indexOf(pollOption.id);
+    poll.pollItems.splice(pollItemIndex, 1);
+    const savedPoll = await poll.save();
     await PollItem.deleteOne(pollOption);
+    req.io.emit("updatePoll", savedPoll);
+    res.status(200).send(savedPoll);
   } catch (err) {
     invalid.status = 500;
     invalid.message = "An internal error just occured!";
@@ -63,7 +75,11 @@ const editPollOption = async (
   try {
     const poll = await Poll.findById(pollId);
     const pollOption = await PollItem.findById(pollOptionId);
-
+    if (!pollOption || !poll) {
+      invalid.message = "poll option does not exist or poll has been removed.";
+      invalid.status = 404;
+      return next(invalid);
+    }
     if (pollOption.creatorId !== id && poll.creatorId !== id) {
       invalid.message = "you are forbidden from editting this poll option.";
       invalid.status = 403;
@@ -72,6 +88,7 @@ const editPollOption = async (
 
     pollOption.text = text;
     await pollOption.save();
+    req.io.emit("updatePoll", poll);
   } catch (err) {
     invalid.status = 500;
     invalid.message = "An internal error just occured!";
@@ -84,6 +101,12 @@ const addVote = async (req: Request, res: Response, next: NextFunction) => {
   const invalid: ResponseError = new Error();
   try {
     const pollOption = await PollItem.findById(pollOptionId);
+    if (!pollOption) {
+      invalid.message = "poll option does not exist";
+      invalid.status = 404;
+      return next(invalid);
+    }
+    const poll = await Poll.findOne({ pollItems: pollOption.id });
     if (pollOption.voters.includes(id)) {
       invalid.message = "this vote has already been counted";
       invalid.status = 400;
@@ -91,6 +114,7 @@ const addVote = async (req: Request, res: Response, next: NextFunction) => {
     }
     pollOption.voters.push(id);
     await pollOption.save();
+    req.io.emit("updatePoll", poll);
     res.status(201).send("vote successfully created");
   } catch (err) {
     invalid.status = 500;
@@ -104,7 +128,13 @@ const removeVote = async (req: Request, res: Response, next: NextFunction) => {
   const invalid: ResponseError = new Error();
   try {
     const pollOption = await PollItem.findById(pollOptionId);
+    if (!pollOption) {
+      invalid.message = "poll option does not exist";
+      invalid.status = 404;
+      return next(invalid);
+    }
     const elementIndex = pollOption.voters.indexOf(id);
+
     if (elementIndex !== -1) {
       invalid.message = "this vote has already been removed";
       invalid.status = 400;
@@ -112,7 +142,10 @@ const removeVote = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     pollOption.voters.splice(elementIndex, 1);
+    const poll = await Poll.findOne({ pollItems: pollOption.id });
+
     const savedPollOption = await pollOption.save();
+    req.io.emit("updatePoll", poll);
     res.status(204).send(savedPollOption);
   } catch (err) {
     invalid.status = 500;
