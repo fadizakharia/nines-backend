@@ -1,4 +1,3 @@
-import { Iot } from "aws-sdk";
 import { NextFunction, Request, Response } from "express";
 import Poll from "../models/poll";
 import { PollItem } from "../models/pollItem";

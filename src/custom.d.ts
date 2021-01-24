@@ -8,7 +8,7 @@ declare module "express-session" {
 declare global {
   namespace Express {
     export interface Request {
-      io?: Server;
+      io: Server;
     }
   }
 }

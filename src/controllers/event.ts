@@ -26,7 +26,7 @@ const getUserEvents = async (
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 const getEvents = async (req: Request, res: Response, next: NextFunction) => {
@@ -47,7 +47,7 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 const createEvent = async (req: Request, res: Response, next: NextFunction) => {
@@ -75,7 +75,7 @@ const createEvent = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 const EditEvent = async (req: Request, res: Response, next: NextFunction) => {
@@ -115,7 +115,7 @@ const EditEvent = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
@@ -139,7 +139,7 @@ const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 const addAttending = async (
@@ -169,7 +169,7 @@ const addAttending = async (
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 const removeAttending = async (
@@ -200,7 +200,7 @@ const removeAttending = async (
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 export {

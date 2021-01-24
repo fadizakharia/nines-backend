@@ -12,9 +12,21 @@ import MongoStore from "connect-mongo";
 import { pollRouter } from "./routes/poll";
 import { PollsDoc } from "./models/poll";
 import { EventsDoc } from "./models/Event";
+import { userRouter } from "./routes/user";
 dotenv.config();
 const app = express();
-
+declare module "express-session" {
+  interface Session {
+    user: { [key: string]: any };
+  }
+}
+declare global {
+  namespace Express {
+    export interface Request {
+      io: Server;
+    }
+  }
+}
 app.set("trust proxy", 1);
 
 mongoose.connect(process.env.DB_CONNECTION_URI!, {
@@ -44,11 +56,11 @@ app.use(
 
 app.use(json());
 
-app.use(Cors({ credentials: true }));
+app.use(Cors({ credentials: true, origin: "http://localhost:3000" }));
 const server = createServer(app);
 const io = new Server(server);
 io.on("connect", (socket: Socket) => {
-  console.log("connecion");
+  // console.log("connecion");
 });
 io.on("updatePoll", (socket: Socket, data: PollsDoc) => {
   io.sockets.emit(data.toObject());
@@ -70,11 +82,14 @@ io.on("deleteEvent", (socket: Socket, data: EventsDoc) => {
   io.sockets.emit(data.toObject());
 });
 app.use((req: Request, res: Response, next: NextFunction) => {
+  // console.log(io);
+
   req.io = io;
   next();
 });
 app.use(authRouter);
 app.use(pollRouter);
+app.use(userRouter);
 app.use((req: Request, res: Response, next: NextFunction) => {
   const error: ResponseError = new Error("Not found");
   error.status = 404;

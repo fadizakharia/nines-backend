@@ -7,75 +7,76 @@ import { ResponseError } from "../util/Error/Error";
 import { sendEmail } from "../util/services/ses-client/ses-client";
 
 const signup = async (req: Request, res: Response, next: NextFunction) => {
-  const username = req.body.userName;
+  const username = req.body.characterName;
   const password = req.body.password;
-  const validationError: ResponseError = new Error();
+  const invalid: ResponseError = new Error();
   const confirmPassword = req.body.confirm;
+  try {
+    const oldUser: userDoc | undefined = await User.findOne({
+      characterName: username,
+    });
+    if (oldUser) {
+      invalid.message = "this user already exists!";
+      invalid.status = 400;
+      return next(invalid);
+    }
 
-  const oldUser: userDoc | undefined = await User.findOne({
-    characterName: username,
-  });
-  if (oldUser) {
-    validationError.message = "this user already exists!";
-    validationError.status = 400;
-    return next(validationError);
+    if (confirmPassword !== password) {
+      invalid.message = "passwords do not match";
+      invalid.status = 400;
+      return next(invalid);
+    }
+    const newUser = await new User({
+      characterName: username,
+      password: password,
+      admin: false,
+      verified: false,
+    }).save();
+    req.session.user = newUser;
+
+    res.json({
+      user: newUser,
+    });
+  } catch (err) {
+    invalid.message = "An internal error occured please try again later";
+    invalid.status = 500;
+    return next(invalid);
   }
-
-  if (confirmPassword !== password) {
-    validationError.message = "passwords do not match";
-    validationError.status = 400;
-    return next(validationError);
-  }
-  const newUser = await new User({
-    characterName: username,
-    password: password,
-    admin: false,
-    verified: false,
-  }).save();
-
-  // const signedJwt = jwt.sign(
-  //   {
-  //     id: newUser.id as string,
-  //     characterName: newUser.characterName as string,
-  //   },
-  //   process.env.ACCESS_TOKEN_SECRET as string,
-  //   { algorithm: "HS512" }
-  // );
-
-  req.session.user = newUser;
-
-  res.json({
-    user: newUser,
-  });
 };
 const currentUser = (req: Request, res: Response, next: NextFunction) => {
-  const { session } = req;
-
-  session.user
-    ? res.send({ user: session.user })
-    : res.status(405).send({ error: "user is not logged in!" });
+  const { user } = req.session;
+  res.send({ user });
 };
 const login = async (req: Request, res: Response, next: NextFunction) => {
-  const { userName, password } = req.body;
-  const error: ResponseError = new Error();
-  const foundUser: userDoc | undefined = await User.findOne({
-    characterName: userName,
-  });
-  console.log(foundUser);
+  const { characterName, password } = req.body;
 
-  if (foundUser === undefined) {
-    error.status = 400;
-    error.message = "username is incorrect";
+  const error: ResponseError = new Error();
+  try {
+    const foundUser: userDoc | undefined = await User.findOne({
+      characterName: characterName,
+    });
+
+    if (!foundUser) {
+      error.status = 400;
+      error.message = "username is incorrect";
+      return next(error);
+    }
+
+    const comparisionResult = await compareHash(password, foundUser.password);
+    if (!comparisionResult) {
+      error.status = 400;
+      error.message = "username or password is incorrect";
+      return next(error);
+    }
+    req.session.user = foundUser;
+    res.status(200).send({ user: foundUser });
+  } catch (err) {
+    console.log(err);
+
+    error.message = "An internal error occured please try again later";
+    error.status = 500;
     return next(error);
   }
-  const comparisionResult = await compareHash(password, foundUser.password);
-  if (!comparisionResult) {
-    error.status = 400;
-    error.message = "username or password is incorrect";
-    return next(error);
-  }
-  req.session.user = foundUser;
-  res.status(200).send({ user: foundUser });
 };
 const logout = (req: Request, res: Response, next: NextFunction) => {
   res.clearCookie("auth");
@@ -93,7 +94,7 @@ const requestVerification = async (
   next: NextFunction
 ) => {
   const user = req.session.user;
-  console.log(user);
+  const invalid: ResponseError = new Error();
   try {
     const foundUser: userDoc = await User.findById(user.id);
     const date = new Date();
@@ -114,7 +115,9 @@ const requestVerification = async (
     );
     res.send({ user: foundUser });
   } catch (err) {
-    console.log(err);
+    invalid.message = "An internal error occured please try again later";
+    invalid.status = 500;
+    return next(invalid);
   }
 };
 const verifyAccount = async (
@@ -124,7 +127,7 @@ const verifyAccount = async (
 ) => {
   const verificationLink = req.params.link;
   const currentTime = new Date();
-
+  const invalid: ResponseError = new Error();
   let userPayload:
     | { userId: string; expiration: number }
     | undefined = undefined;
@@ -133,24 +136,32 @@ const verifyAccount = async (
     process.env.ACCESS_TOKEN_SECRET,
     function (err, decoded: typeof userPayload) {
       if (err) {
-        return res.status(405).send({ status: "invalid token" });
+        invalid.message = "An internal error occured please try again later";
+        invalid.status = 500;
+        return next(invalid);
       }
       userPayload = decoded;
     }
   );
-  const foundUser: userDoc = await User.findById(userPayload.userId);
-  if (userPayload.expiration < currentTime.getMilliseconds()) {
+  try {
+    const foundUser: userDoc = await User.findById(userPayload.userId);
+    if (userPayload.expiration < currentTime.getMilliseconds()) {
+      foundUser.verificationUrl = undefined;
+      await foundUser.save();
+      res.status(405).send({ status: "validation token has expired" });
+    }
+    if (!foundUser) {
+      res.status(404).send({ status: "user not found!" });
+    }
     foundUser.verificationUrl = undefined;
+    foundUser.verified = true;
     await foundUser.save();
-    res.status(405).send({ status: "validation token has expired" });
+    res.send({ status: "user has been successfully verified!" });
+  } catch (err) {
+    invalid.message = "An internal error occured please try again later";
+    invalid.status = 500;
+    return next(invalid);
   }
-  if (!foundUser) {
-    res.status(404).send({ status: "user not found!" });
-  }
-  foundUser.verificationUrl = undefined;
-  foundUser.verified = true;
-  await foundUser.save();
-  res.send({ status: "user has been successfully verified!" });
 };
 export {
   signup as signupHandler,

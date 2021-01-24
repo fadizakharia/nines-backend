@@ -11,4 +11,8 @@
   },
   "lib": ["es2015"],
   "include": "./src/*.d.ts",
+   /*ignore this error whoever opens this project
+   since, if you attempt to add an array instead of a wild card
+   the project malfunctions even if you select the exact definition type file
+  */
 }

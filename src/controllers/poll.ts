@@ -21,7 +21,7 @@ const getAllPolls = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 
@@ -33,33 +33,39 @@ const createPoll = async (req: Request, res: Response, next: NextFunction) => {
     expirationTime,
     pollItems,
   } = req.body as PollsDoc;
-  const user = req.session.user.id as string;
-  const poll: PollsDoc = new Poll({
-    title: title as string,
-    description: description as string,
-    type: type as number,
-    expirationTime: expirationTime as Date,
-    creatorId: user,
-  });
-  let pollItem: PollItemDoc[] = [];
-  pollItems.forEach((i: string) => {
-    pollItem = [
-      ...pollItem,
-      new PollItem({
-        text: i,
-        creatorId: user,
-      } as PollItemAttrs),
-    ];
-  });
-  const savedPollItems = await PollItem.create(pollItem);
-  const savedItemIds = savedPollItems.map((item) => {
-    return item._id as string;
-  });
-  poll.pollItems = savedItemIds;
-  const savedPoll = await poll.save();
   const invalid: ResponseError = new Error();
-  req.io.emit("createPoll", savedPoll);
-  res.send({ poll: savedPoll });
+  try {
+    const user = req.session.user.id as string;
+    const poll: PollsDoc = new Poll({
+      title: title as string,
+      description: description as string,
+      type: type as number,
+      expirationTime: expirationTime as Date,
+      creatorId: user,
+    });
+    let pollItem: PollItemDoc[] = [];
+    pollItems.forEach((i: string) => {
+      pollItem = [
+        ...pollItem,
+        new PollItem({
+          text: i,
+          creatorId: user,
+        } as PollItemAttrs),
+      ];
+    });
+    const savedPollItems = await PollItem.create(pollItem);
+    const savedItemIds = savedPollItems.map((item) => {
+      return item._id as string;
+    });
+    poll.pollItems = savedItemIds;
+    const savedPoll = await poll.save();
+    req.io.emit("createPoll", savedPoll);
+    res.send({ poll: savedPoll });
+  } catch (err) {
+    invalid.message = "An internal error occured please try again later";
+    invalid.status = 500;
+    return next(invalid);
+  }
 };
 const updatePoll = async (req: Request, res: Response, next: NextFunction) => {
   const { pollId } = req.body;
@@ -79,7 +85,7 @@ const updatePoll = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 
@@ -135,7 +141,7 @@ const getUserPolls = async (
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
-    next(invalid);
+    return next(invalid);
   }
 };
 export {
