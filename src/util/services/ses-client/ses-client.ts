@@ -1,6 +1,11 @@
+import env from "dotenv";
+env.config();
 import AWS from "aws-sdk";
-import { AWS_CONFIG as config } from "../../../aws-config"; // load configurations file
-
+import { AWS_CONFIG as configurations } from "../../../aws-config"; // load configurations file
+const config = configurations(
+  process.env.IAM_ACCESS_KEY,
+  process.env.IAM_ACCESS_SECRET
+);
 AWS.config.update({
   accessKeyId: config.aws.key,
   secretAccessKey: config.aws.secret,

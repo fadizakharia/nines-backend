@@ -13,6 +13,7 @@ import { pollRouter } from "./routes/poll";
 import { PollsDoc } from "./models/poll";
 import { EventsDoc } from "./models/Event";
 import { userRouter } from "./routes/user";
+import multer from "multer";
 dotenv.config();
 const app = express();
 declare module "express-session" {
@@ -28,7 +29,7 @@ declare global {
   }
 }
 app.set("trust proxy", 1);
-
+app.use("/uploads", express.static("uploads"));
 mongoose.connect(process.env.DB_CONNECTION_URI!, {
   useNewUrlParser: true,
   useUnifiedTopology: true,

@@ -1,9 +1,14 @@
 import { userDoc, User } from "../models/User";
 import { Request, Response, NextFunction } from "express";
 import { ResponseError } from "../util/Error/Error";
+import { Session } from "express-session";
+import fs from "fs";
 const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   const invalid: ResponseError = new Error();
   const { characterName, Bio } = req.body;
+  const profilePicture = req.file;
+  console.log(profilePicture);
+
   try {
     const user: userDoc = await User.findById(req.session.user.id);
     if (!user) {
@@ -12,17 +17,30 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
       return next(invalid);
     }
     const invalidUser: userDoc = await User.findOne({
-      characterName: user.characterName,
+      characterName: characterName,
     });
     if (invalidUser) {
       invalid.message = "this character name is already taken";
       invalid.status = 400;
-      return next(invalidUser);
+      return next(invalid);
     }
     user.characterName =
       user.characterName !== characterName ? characterName : user.characterName;
     user.bio = user.bio !== Bio ? Bio : user.bio;
+    user.profilePictureURI =
+      profilePicture && profilePicture.path
+        ? profilePicture.path
+        : user.profilePictureURI;
     const savedUser = await user.save();
+    const expires = req.session.cookie.expires;
+    req.session.user = savedUser;
+    req.session.cookie.expires = expires;
+    console.log(savedUser);
+    if (user.profilePictureURI) {
+      fs.unlink(user.profilePictureURI, (err) => {
+        console.log(err);
+      });
+    }
     res.send(savedUser);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
@@ -34,15 +52,17 @@ const getUsers = async (req: Request, res: Response, next: NextFunction) => {
   const { page, limit } = req.body;
   const invalid: ResponseError = new Error();
   try {
-    const foundUsers = await User.find({ verified: true })
+    const foundUsers = await User.find()
       .skip(page * limit)
       .limit(limit);
+    const length = await User.countDocuments();
+    const pages = Math.ceil(length / limit);
     if (foundUsers.length === 0) {
       invalid.message = "No users found.";
       invalid.status = 404;
       return next(invalid);
     }
-    res.send(foundUsers);
+    res.json({ users: foundUsers, length, pages });
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
@@ -54,16 +74,19 @@ const currentUser = async (req: Request, res: Response, next: NextFunction) => {
   res.status(200).send(user);
 };
 const getUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { userId } = req.body;
+  const characterName = req.params.current.toString();
+
+  console.log(characterName);
+
   const invalid: ResponseError = new Error();
   try {
-    const user = await User.findById(userId);
+    const user = await User.findOne({ characterName });
     if (!user) {
       invalid.message = "user does not exist!";
       invalid.status = 404;
       return next(invalid);
     }
-    return res.send({ user });
+    return res.send(user);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;

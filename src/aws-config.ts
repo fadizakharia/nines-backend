@@ -1,4 +1,4 @@
-const AWS_CONFIG = {
+const AWS_CONFIG = (key: string, secret: string) => ({
   aws: {
     key: process.env.IAM_ACCESS_KEY,
     secret: process.env.IAM_ACCESS_SECRET,
@@ -9,5 +9,5 @@ const AWS_CONFIG = {
       region: "us-east-1",
     },
   },
-};
+});
 export { AWS_CONFIG };
