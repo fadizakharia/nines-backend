@@ -1,6 +1,7 @@
 import express from "express";
 import { currentUserHandler } from "../controllers/auth";
 import multer from "multer";
+import { v1 } from "uuid";
 import {
   deleteUserHandler,
   getUserHandler,
@@ -18,7 +19,7 @@ const storage = multer.diskStorage({
     cb(null, "./uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, req.body.characterName + "-" + new Date().toISOString());
+    cb(null, v1());
   },
 });
 const acceptedImages = ["image/jpeg", "image/png", "image/jpg"];
@@ -46,9 +47,9 @@ app.get("/user", isLoggedIn, currentUserHandler);
 app.post("/user/users", getUsersHandler);
 app.put(
   "/user",
+  upload.single("profilePicture"),
   isLoggedIn,
   isVerified,
-  upload.single("profilePicture"),
   updateUserValidator,
   updateUserHandler
 );

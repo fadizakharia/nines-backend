@@ -14,7 +14,7 @@ const authRouter = Router();
 authRouter.post("/auth/register", authValidator, signupHandler);
 authRouter.get("/auth/currentuser", currentUserHandler);
 authRouter.post("/auth/login", authValidator, loginHandler);
-authRouter.post("/auth/logout", isLoggedIn, logoutHandler);
+authRouter.delete("/auth/logout", isLoggedIn, logoutHandler);
 authRouter.post("/auth/sendverify", isLoggedIn, reqVerificationHandler);
 authRouter.get("/auth/verify/:link", verifyAccountHandler);
 export { authRouter };

@@ -43,14 +43,28 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
     return next(invalid);
   }
 };
-const currentUser = (req: Request, res: Response, next: NextFunction) => {
-  const { user } = req.session;
-  res.send({ user });
+const currentUser = async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.session.user;
+  const invalid: ResponseError = new Error();
+  try {
+    const foundUser = await User.findById(id);
+    if (!foundUser) {
+      invalid.message = "An internal error occured please try again later";
+      invalid.status = 500;
+      return next(invalid);
+    }
+    res.status(200).send(foundUser);
+  } catch (err) {
+    invalid.message = "An internal error occured please try again later";
+    invalid.status = 500;
+    return next(invalid);
+  }
 };
 const login = async (req: Request, res: Response, next: NextFunction) => {
   const { characterName, password } = req.body;
 
   const error: ResponseError = new Error();
+
   try {
     const foundUser: userDoc | undefined = await User.findOne({
       characterName: characterName,
@@ -69,7 +83,9 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       return next(error);
     }
     req.session.user = foundUser;
-    res.status(200).send({ user: foundUser });
+    console.log(foundUser);
+
+    res.status(200).send(foundUser);
   } catch (err) {
     console.log(err);
 

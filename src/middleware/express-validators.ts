@@ -38,12 +38,11 @@ export const removePollOptionValidator = [
 export const voteValidator = [body("pollOptionId").isString()];
 export const userValidator = [
   body("characterName").isString().isLength({ min: 3, max: 30 }),
-  body("Bio").isString(),
+  body("bio").isString(),
 ];
 export const updateUserValidator = [
-  body("id").isString(),
   body("characterName").isString().isLength({ min: 3, max: 30 }),
-  body("Bio").isString(),
+  body("bio").isString(),
 ];
 export const postPollValidator = [
   body("title").isString().isLength({ min: 3, max: 100 }),

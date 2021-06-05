@@ -70,8 +70,8 @@ const createEvent = async (req: Request, res: Response, next: NextFunction) => {
     }
     const event = new Event({ ...req.body, creatorId: id });
     const savedEvent = await event.save();
-    req.io.emit("createEvent", savedEvent);
     res.status(201).send(savedEvent);
+    req.io.emit("createEvent", savedEvent);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
@@ -110,8 +110,8 @@ const EditEvent = async (req: Request, res: Response, next: NextFunction) => {
     }
     event.update({ ...req.body });
     const savedEvent = await event.save();
-    req.io.emit("updateEvent", savedEvent);
     res.status(201).send(savedEvent);
+    req.io.emit("updateEvent", savedEvent);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
@@ -134,6 +134,7 @@ const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
       invalid.message = "you are not allowed to delete this event!";
       return next(invalid);
     }
+
     req.io.emit("deleteEvent", event);
     await Event.deleteOne(event);
   } catch (err) {
@@ -164,8 +165,9 @@ const addAttending = async (
     }
     event.attending.push(id);
     const attending = await event.save();
-    req.io.emit("updateEvent", attending);
+
     res.status(201).send(attending);
+    req.io.emit("attendingEvent", [id]);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
@@ -195,7 +197,7 @@ const removeAttending = async (
     }
     event.attending.splice(attendingIndex, 1);
     const attending = await event.save();
-    req.io.emit("updateEvent", attending);
+    req.io.emit("removeAttending", attending);
     res.status(205).send(attending);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";

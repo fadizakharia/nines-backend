@@ -5,9 +5,9 @@ import { Session } from "express-session";
 import fs from "fs";
 const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   const invalid: ResponseError = new Error();
-  const { characterName, Bio } = req.body;
+  const { characterName, bio } = req.body;
+
   const profilePicture = req.file;
-  console.log(profilePicture);
 
   try {
     const user: userDoc = await User.findById(req.session.user.id);
@@ -16,28 +16,36 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
       invalid.status = 404;
       return next(invalid);
     }
+    console.log("i am trying to update user!");
+
     const invalidUser: userDoc = await User.findOne({
       characterName: characterName,
     });
-    if (invalidUser) {
+    if (invalidUser && invalidUser.characterName !== characterName) {
       invalid.message = "this character name is already taken";
       invalid.status = 400;
       return next(invalid);
     }
+
+    const unlinkedImage = user.profilePictureURI;
     user.characterName =
-      user.characterName !== characterName ? characterName : user.characterName;
-    user.bio = user.bio !== Bio ? Bio : user.bio;
-    user.profilePictureURI =
-      profilePicture && profilePicture.path
-        ? profilePicture.path
-        : user.profilePictureURI;
+      characterName && user.characterName !== characterName
+        ? characterName
+        : user.characterName;
+    user.bio = bio ? bio : user.bio;
+    console.log(profilePicture);
+    console.log(user.profilePictureURI);
+    user.profilePictureURI = profilePicture
+      ? profilePicture.path
+      : user.profilePictureURI;
     const savedUser = await user.save();
+
     const expires = req.session.cookie.expires;
     req.session.user = savedUser;
     req.session.cookie.expires = expires;
-    console.log(savedUser);
-    if (user.profilePictureURI) {
-      fs.unlink(user.profilePictureURI, (err) => {
+
+    if (profilePicture) {
+      fs.unlink(unlinkedImage, (err) => {
         console.log(err);
       });
     }
@@ -69,10 +77,7 @@ const getUsers = async (req: Request, res: Response, next: NextFunction) => {
     return next(invalid);
   }
 };
-const currentUser = async (req: Request, res: Response, next: NextFunction) => {
-  const user = req.session.user;
-  res.status(200).send(user);
-};
+
 const getUser = async (req: Request, res: Response, next: NextFunction) => {
   const characterName = req.params.current.toString();
 
@@ -116,5 +121,4 @@ export {
   getUsers as getUsersHandler,
   updateUser as updateUserHandler,
   deleteUser as deleteUserHandler,
-  currentUser as currentUserHandler,
 };

@@ -21,8 +21,8 @@ const addPollOption = async (
     const savedPollItem = await pollItem.save();
     poll.pollItems.push(savedPollItem.id);
     await poll.save();
-    req.io.emit("updatePoll", poll);
-    res.status(201).send(poll);
+
+    res.status(201).send(savedPollItem);
   } catch (err) {
     invalid.status = 500;
     invalid.message = "An internal error just occured!";
@@ -55,8 +55,8 @@ const deletePollOption = async (
     poll.pollItems.splice(pollItemIndex, 1);
     const savedPoll = await poll.save();
     await PollItem.deleteOne(pollOption);
-    req.io.emit("updatePoll", savedPoll);
-    res.status(200).send(savedPoll);
+
+    res.status(200).send();
   } catch (err) {
     invalid.status = 500;
     invalid.message = "An internal error just occured!";
@@ -86,8 +86,8 @@ const editPollOption = async (
     }
 
     pollOption.text = text;
-    await pollOption.save();
-    req.io.emit("updatePoll", poll);
+    const savedPollOption = await pollOption.save();
+    res.status(200).send(savedPollOption);
   } catch (err) {
     invalid.status = 500;
     invalid.message = "An internal error just occured!";
@@ -113,8 +113,7 @@ const addVote = async (req: Request, res: Response, next: NextFunction) => {
     }
     pollOption.voters.push(id);
     await pollOption.save();
-    req.io.emit("updatePoll", poll);
-    res.status(201).send("vote successfully created");
+    res.status(201).send();
   } catch (err) {
     invalid.status = 500;
     invalid.message = "An internal error just occured!";
@@ -132,6 +131,11 @@ const removeVote = async (req: Request, res: Response, next: NextFunction) => {
       invalid.status = 404;
       return next(invalid);
     }
+    if (!pollOption.voters.includes(id)) {
+      invalid.message = "this vote has already been removed";
+      invalid.status = 400;
+      return next(invalid);
+    }
     const elementIndex = pollOption.voters.indexOf(id);
 
     if (elementIndex !== -1) {
@@ -141,10 +145,9 @@ const removeVote = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     pollOption.voters.splice(elementIndex, 1);
-    const poll = await Poll.findOne({ pollItems: pollOption.id });
 
     const savedPollOption = await pollOption.save();
-    req.io.emit("updatePoll", poll);
+
     res.status(204).send(savedPollOption);
   } catch (err) {
     invalid.status = 500;

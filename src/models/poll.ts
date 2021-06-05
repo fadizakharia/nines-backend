@@ -43,7 +43,7 @@ const PollSchema = new mongoose.Schema<PollsAttrs>(
     },
     creatorId: {
       type: mongoose.SchemaTypes.ObjectId,
-      ref: "User",
+      ref: "user",
       required: true,
     },
     pollItems: [{ type: mongoose.SchemaTypes.ObjectId, ref: "poll_item" }],

@@ -24,7 +24,7 @@ app.get(
   isVerified,
   getUserPollsHandler
 );
-app.get("/poll", getPollsValidator, getPollsHandler);
+app.get("/poll/:createdAt", getPollsValidator, isLoggedIn, getPollsHandler);
 app.post("/poll", postPollValidator, isLoggedIn, isVerified, createPollHandler);
 app.put(
   "/poll",

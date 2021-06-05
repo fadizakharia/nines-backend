@@ -25,12 +25,16 @@ const PollItemSchema = new mongoose.Schema<PollItemAttrs>(
     voters: [
       {
         type: mongoose.SchemaTypes.ObjectId,
-        ref: "User",
+        ref: "user",
       },
     ],
+    pollId: {
+      type: mongoose.SchemaTypes.ObjectId,
+      ref: "poll",
+    },
     creatorId: {
       type: mongoose.SchemaTypes.ObjectId,
-      ref: "User",
+      ref: "user",
       required: true,
     },
   },

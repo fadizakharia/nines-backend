@@ -2,14 +2,19 @@ import { NextFunction, Request, Response } from "express";
 
 import Poll, { PollsDoc } from "../models/poll";
 import { PollItem, PollItemAttrs, PollItemDoc } from "../models/pollItem";
-
+import moment from "moment";
 import { ResponseError } from "../util/Error/Error";
 const getAllPolls = async (req: Request, res: Response, next: NextFunction) => {
-  const { expiredOnBefore } = req.body;
+  console.log(req.params.createdAt);
+  const expiredOnBefore = moment(+req.params.createdAt);
+
   const invalid: ResponseError = new Error();
   try {
-    const polls = await Poll.find({ expirationTime: { $lte: expiredOnBefore } })
-      .populate(["poll_item", "user"])
+    const polls = await Poll.find({
+      createdAt: { $lte: expiredOnBefore.toDate() },
+      // type: type && type,
+    })
+      .populate("creatorId")
       .limit(10)
       .sort("-expirationTime");
     if (polls.length === 0) {
@@ -19,6 +24,8 @@ const getAllPolls = async (req: Request, res: Response, next: NextFunction) => {
     }
     res.send(polls);
   } catch (err) {
+    console.log(err.message);
+
     invalid.message = "An internal error occured please try again later";
     invalid.status = 500;
     return next(invalid);
@@ -59,7 +66,7 @@ const createPoll = async (req: Request, res: Response, next: NextFunction) => {
     });
     poll.pollItems = savedItemIds;
     const savedPoll = await poll.save();
-    req.io.emit("createPoll", savedPoll);
+
     res.send({ poll: savedPoll });
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
@@ -80,7 +87,7 @@ const updatePoll = async (req: Request, res: Response, next: NextFunction) => {
     const updatedPoll = await foundPoll.update({
       ...req.body,
     });
-    req.io.emit("updatePoll", updatedPoll);
+
     res.status(204).send(updatedPoll);
   } catch (err) {
     invalid.message = "An internal error occured please try again later";
@@ -107,7 +114,7 @@ const deletePoll = async (req: Request, res: Response, next: NextFunction) => {
     }
     await PollItem.deleteMany(poll.pollItems);
     await Poll.deleteOne(poll);
-    req.io.emit("deletePoll", poll);
+
     res.status(200).send("poll successfully removed!");
   } catch (err) {
     invalid.message =
@@ -126,7 +133,7 @@ const getUserPolls = async (
   const { expiredOnBefore } = req.body;
   try {
     const polls = await Poll.find({
-      creatorId: id,
+      creator: id,
       expirationTime: { $lte: expiredOnBefore },
     })
       .populate(["poll_item", "user"])

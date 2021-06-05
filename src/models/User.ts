@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema<UserAttrs>(
       required: true,
     },
     password: { type: String, required: true },
-    Bio: { type: String, required: false },
+    bio: { type: String, required: false },
     verified: { type: Boolean, required: true },
     verificationUrl: { type: String, required: false },
     profilePictureURI: { type: String, required: false },

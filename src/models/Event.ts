@@ -55,10 +55,10 @@ const EventSchema = new mongoose.Schema<EventsAttrs>(
     },
     creatorId: {
       type: mongoose.SchemaTypes.ObjectId,
-      ref: "User",
+      ref: "user",
       required: true,
     },
-    attending: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
+    attending: [{ type: mongoose.SchemaTypes.ObjectId, ref: "user" }],
   },
   {
     toJSON: {

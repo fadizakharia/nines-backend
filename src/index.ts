@@ -13,6 +13,7 @@ import { pollRouter } from "./routes/poll";
 import { PollsDoc } from "./models/poll";
 import { EventsDoc } from "./models/Event";
 import { userRouter } from "./routes/user";
+import path from "path";
 import multer from "multer";
 dotenv.config();
 const app = express();
@@ -29,7 +30,6 @@ declare global {
   }
 }
 app.set("trust proxy", 1);
-app.use("/uploads", express.static("uploads"));
 mongoose.connect(process.env.DB_CONNECTION_URI!, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -56,35 +56,19 @@ app.use(
 );
 
 app.use(json());
+app.use("/uploads", express.static("uploads"));
+console.log(path.normalize(__dirname + "/../uploads"));
 
 app.use(Cors({ credentials: true, origin: "http://localhost:3000" }));
 const server = createServer(app);
 const io = new Server(server);
-io.on("connect", (socket: Socket) => {
-  // console.log("connecion");
-});
-io.on("updatePoll", (socket: Socket, data: PollsDoc) => {
-  io.sockets.emit(data.toObject());
-});
-io.on("createPoll", (socket: Socket, data: PollsDoc) => {
-  io.sockets.emit(data.toObject());
-});
-io.on("deletePoll", (socket: Socket, data: PollsDoc) => {
-  io.sockets.emit(data.toObject());
+
+io.on("connectPollOptions", (socket: Socket) => {
+  let room = socket.handshake["query"]["pollId"];
+  socket.join(room);
 });
 
-io.on("createEvent", (socket: Socket, data: EventsDoc) => {
-  io.sockets.emit(data.toObject());
-});
-io.on("updateEvent", (socket: Socket, data: EventsDoc) => {
-  io.sockets.emit(data.toObject());
-});
-io.on("deleteEvent", (socket: Socket, data: EventsDoc) => {
-  io.sockets.emit(data.toObject());
-});
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // console.log(io);
-
   req.io = io;
   next();
 });
